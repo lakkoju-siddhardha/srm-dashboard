@@ -3,3 +3,4 @@ node_modules/
 sessions/
 captcha.png
 processed.png
+after-login.png
