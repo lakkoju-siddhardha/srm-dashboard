@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<!-- Mobile overlay -->
+<div class="overlay" id="overlay" onclick="closeMobileSidebar()"></div>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">S</div>
+    <div>
+      <div class="logo-text">SRM Dashboard</div>
+      <div class="logo-sub">Student Portal</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+   
+
+    <a class="nav-item active" data-label="Dashboard" onclick="navigate('dashboard')">
+      <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a class="nav-item" data-label="Attendance" onclick="navigate('attendance')">
+      <i class="ti ti-chart-pie" aria-hidden="true"></i>
+      <span class="nav-label">Attendance</span>
+      
+    </a>
+    <a class="nav-item" data-label="Attendance Code" onclick="navigate('code')">
+      <i class="ti ti-qrcode" aria-hidden="true"></i>
+      <span class="nav-label">Attendance Code</span>
+    </a>
+    <a class="nav-item" data-label="Timetable" onclick="navigate('timetable')">
+      <i class="ti ti-calendar-event" aria-hidden="true"></i>
+      <span class="nav-label">Timetable</span>
+    </a>
+    <a class="nav-item" data-label="Bunk Calculator" onclick="navigate('bunk')">
+      <i class="ti ti-calculator" aria-hidden="true"></i>
+      <span class="nav-label">Bunk Calculator</span>
+    </a>
+
+   
+    
+  
+
+  <div class="sidebar-bottom">
+    <a id="logoutBtn" class="nav-item" data-label="Logout" style="color: var(--accent-red);">
+      <i class="ti ti-logout" aria-hidden="true"></i>
+      <span class="nav-label">Logout</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ═══ TOPBAR ═══ -->
+<header class="topbar" id="topbar">
+  <button class="topbar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+    <i class="ti ti-menu-2"></i>
+  </button>
+
+  <div class="topbar-search">
+    <i class="ti ti-search" aria-hidden="true"></i>
+    <input type="text" placeholder="Search subjects, codes…" aria-label="Search">
+  </div>
+
+  <div class="topbar-right">
+    
+    
+    <div class="profile-pill">
+      <div class="avatar" id="avatar">SD</div>
+<span class="profile-name" id="topProfileName">Loading...</span>
+      <i class="ti ti-chevron-down" style="font-size:14px; color:var(--text-muted);" aria-hidden="true"></i>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+<main class="main" id="main">
+
+  <!-- 1. HERO CARD -->
+  <div class="hero-card fade-in mb-6">
+    <div class="hero-card-bg"></div>
+    <div class="hero-top">
+      <div>
+        <div class="hero-name">
+    <h1 id="studentName">Loading...</h1>
+</div>
+
+<div class="hero-reg">
+    <span id="studentRegNo">Loading...</span> ·
+    <span id="studentProgram">Loading...</span> ·
+    <span id="studentSemester">Loading...</span>
+</div>
+      
+      
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- 2. ATTENDANCE CODE SUBMISSION — BIGGEST CARD, PRIMARY CTA -->
+  <div class="code-card fade-in delay-1 mb-6" id="code-section">
+    <div class="code-glow"></div>
+    <div class="code-header">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <span class="code-badge">
+            <i class="ti ti-bolt" style="font-size:11px; vertical-align:-1px;"></i>
+            Primary Feature
+          </span>
+        </div>
+        <div class="code-title">Submit Attendance Code</div>
+        <div class="code-subtitle">Enter the 6-character code from your faculty's screen</div>
+      </div>
+     
+    </div>
+
+    <div class="code-input-wrapper">
+      <input
+        type="text"
+        class="code-input"
+        id="codeInput"
+        placeholder="Enter code (e.g. A3X9KP)"
+        maxlength="6"
+        autocomplete="off"
+        aria-label="Attendance code"
+        oninput="this.value = this.value.toUpperCase()"
+      >
+      <button class="btn-submit" onclick="submitCode()">
+        <i class="ti ti-send" aria-hidden="true"></i>
+        Submit
+      </button>
+    </div>
+
+    <div class="code-info">
+      <i class="ti ti-info-circle" style="font-size:14px;" aria-hidden="true"></i>
+      Codes expire in 30 seconds · Use exactly as shown on the board
+    </div>
+
+    <div class="success-msg" id="successMsg">
+      <i class="ti ti-circle-check" style="font-size:18px;"></i>
+      Attendance marked successfully for <strong id="successSubject">DSA</strong>! Code accepted at <span id="successTime"></span>.
+    </div>
+    <div class="error-msg" id="errorMsg">
+      <i class="ti ti-circle-x" style="font-size:18px;"></i>
+      Invalid or expired code. Double-check and try again.
+    </div>
+
+    <div class="divider"></div>
+
+    
+  </div>
+
+  <!-- 3+4: ATTENDANCE RING + TODAY'S TIMETABLE side by side -->
+  <div class="grid-2 mb-6">
+
+    <!-- Overall Attendance -->
+    <div class="card attendance-card fade-in delay-2" id="attendance-section">
+      <div class="section-header" style="margin-bottom:0;">
+        <div class="section-title">
+          <i class="ti ti-chart-donut" aria-hidden="true"></i>
+          Overall Attendance
+        </div>
+        <span class="section-link">View history</span>
+      </div>
+      <div class="ring-wrapper">
+        <svg class="ring-svg" width="110" height="110" viewBox="0 0 110 110" aria-label="87% attendance ring">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+          <circle cx="55" cy="55" r="46" fill="none"
+            stroke="url(#ringGrad)" stroke-width="10"
+            stroke-linecap="round"
+            stroke-dasharray="289.0"
+            stroke-dashoffset="37.5"
+            transform="rotate(-90 55 55)"
+            id="ringCircle"
+          />
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#10b981"/>
+              <stop offset="100%" stop-color="#4f7cff"/>
+            </linearGradient>
+          </defs>
+          <text x="55" y="51" text-anchor="middle" font-family="Inter" font-size="18" font-weight="800" fill="#10b981">87%</text>
+          <text x="55" y="67" text-anchor="middle" font-family="Inter" font-size="9" fill="rgba(255,255,255,0.35)">OVERALL</text>
+        </svg>
+        <div class="ring-labels">
+          <div class="ring-pct green">87%</div>
+          <div class="ring-desc">142 of 163 classes attended</div>
+          <div class="ring-detail">
+            <div class="ring-row">
+              <span class="ring-row-label">Present</span>
+              <span class="ring-row-val">142</span>
+            </div>
+            <div class="ring-row">
+              <span class="ring-row-label">Absent</span>
+              <span class="ring-row-val" style="color:var(--accent-red);">21</span>
+            </div>
+            <div class="ring-row">
+              <span class="ring-row-label">Needed (75%)</span>
+              <span class="ring-row-val" style="color:var(--accent-green);">✓ 4 bunks safe</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="warn-banner" style="display:none;" id="lowAttendanceWarn">
+        <i class="ti ti-alert-triangle" style="font-size:18px; flex-shrink:0;"></i>
+        Your attendance is below 75%. You need at least 12 more classes to be eligible.
+      </div>
+    </div>
+
+    <!-- Today's Classes -->
+    <div class="card fade-in delay-2" id="timetable-section">
+      <div class="section-header">
+        <div class="section-title">
+          <i class="ti ti-calendar-event" aria-hidden="true"></i>
+          Today's Classes
+        </div>
+        <span class="section-link">Full timetable</span>
+      </div>
+      <div class="timeline-list">
+        <div class="timeline-item">
+          <div class="timeline-time">8:00 AM</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-info">
+            <div class="timeline-subject">Mathematics IV</div>
+            <div class="timeline-meta">
+              <span>Dr. Meera Nair</span>·<span>LH-301</span>
+            </div>
+          </div>
+          <div class="timeline-tag">Done</div>
+        </div>
+        <div class="timeline-item current">
+          <div class="timeline-time">9:00 AM</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-info">
+            <div class="timeline-subject">
+              <span class="live-dot"></span>Data Structures
+            </div>
+            <div class="timeline-meta">
+              <span>Prof. Rajesh Kumar</span>·<span>CSE-203</span>
+            </div>
+          </div>
+          <div class="timeline-tag">Live</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">11:00 AM</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-info">
+            <div class="timeline-subject">Operating Systems</div>
+            <div class="timeline-meta">
+              <span>Dr. Sundar Rao</span>·<span>CSE-104</span>
+            </div>
+          </div>
+          <div class="timeline-tag">Upcoming</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">2:00 PM</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-info">
+            <div class="timeline-subject">DBMS Lab</div>
+            <div class="timeline-meta">
+              <span>Ms. Priya Anand</span>·<span>DB-Lab 2</span>
+            </div>
+          </div>
+          <div class="timeline-tag">Upcoming</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-time">4:00 PM</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-info">
+            <div class="timeline-subject">Physics</div>
+            <div class="timeline-meta">
+              <span>Dr. Vijay Sharma</span>·<span>PH-102</span>
+            </div>
+          </div>
+          <div class="timeline-tag">Upcoming</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. SUBJECT-WISE ATTENDANCE TABLE -->
+  <div class="card fade-in delay-3 mb-6">
+    <div class="section-header">
+      <div class="section-title">
+        <i class="ti ti-table" aria-hidden="true"></i>
+        Subject-wise Attendance
+      </div>
+      <span class="section-link">Export report</span>
+    </div>
+    <div style="overflow-x: auto;">
+      <table class="subj-table" aria-label="Subject-wise attendance table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Attended / Total</th>
+            <th>Progress</th>
+            <th>Attendance %</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="subjectTable">
+          <tr>
+            <td><div class="subj-name">Data Structures & Algorithms</div><div class="subj-code">CS3501</div></td>
+            <td style="color:var(--text-secondary);">32 / 36</td>
+            <td style="min-width:120px;">
+              <div class="progress-bar-wrap"><div class="progress-bar-fill fill-green" style="width:88.8%;"></div></div>
+            </td>
+            <td><strong>88.8%</strong></td>
+            <td><span class="status-badge badge-safe">Safe</span></td>
+          </tr>
+          <tr>
+            <td><div class="subj-name">Database Management Systems</div><div class="subj-code">CS3502</div></td>
+            <td style="color:var(--text-secondary);">29 / 36</td>
+            <td><div class="progress-bar-wrap"><div class="progress-bar-fill fill-yellow" style="width:80.5%;"></div></div></td>
+            <td><strong>80.5%</strong></td>
+            <td><span class="status-badge badge-warning">Warning</span></td>
+          </tr>
+          <tr>
+            <td><div class="subj-name">Operating Systems</div><div class="subj-code">CS3503</div></td>
+            <td style="color:var(--text-secondary);">33 / 36</td>
+            <td><div class="progress-bar-wrap"><div class="progress-bar-fill fill-green" style="width:91.6%;"></div></div></td>
+            <td><strong>91.6%</strong></td>
+            <td><span class="status-badge badge-safe">Safe</span></td>
+          </tr>
+          <tr>
+            <td><div class="subj-name">Mathematics IV</div><div class="subj-code">MA3401</div></td>
+            <td style="color:var(--text-secondary);">26 / 36</td>
+            <td><div class="progress-bar-wrap"><div class="progress-bar-fill fill-yellow" style="width:72.2%;"></div></div></td>
+            <td><strong style="color:var(--accent-yellow);">72.2%</strong></td>
+            <td><span class="status-badge badge-critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td><div class="subj-name">Physics for Engineers</div><div class="subj-code">PH3201</div></td>
+            <td style="color:var(--text-secondary);">22 / 19</td>
+            <td><div class="progress-bar-wrap"><div class="progress-bar-fill fill-red" style="width:63%;"></div></div></td>
+            <td><strong style="color:var(--accent-red);">63.0%</strong></td>
+            <td><span class="status-badge badge-critical">Critical</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. BUNK CALCULATOR -->
+  <div class="card fade-in delay-4 mb-6" id="bunk-section">
+    <div class="section-header">
+      <div class="section-title">
+        <i class="ti ti-calculator" aria-hidden="true"></i>
+        Bunk Calculator
+      </div>
+    </div>
+    <div class="grid-2" style="gap:24px; align-items:start;">
+      <div class="calc-row">
+        <div>
+          <div class="calc-label">Select Subject</div>
+          <select class="calc-select" id="bunkSubject" onchange="calcBunks()" aria-label="Select subject for bunk calculation">
+            <option value="88.8,36">Data Structures & Algorithms (88.8%)</option>
+            <option value="80.5,36">Database Management Systems (80.5%)</option>
+            <option value="91.6,36">Operating Systems (91.6%)</option>
+            <option value="72.2,36">Mathematics IV (72.2%) ⚠</option>
+            <option value="63.0,19">Physics for Engineers (63.0%) ⛔</option>
+          </select>
+        </div>
+        <div>
+          <div class="calc-label">Minimum Required Attendance</div>
+          <select class="calc-select" id="bunkThreshold" onchange="calcBunks()" aria-label="Minimum attendance threshold">
+            <option value="75">75% (University minimum)</option>
+            <option value="80">80% (Recommended)</option>
+            <option value="85">85% (Safe zone)</option>
+          </select>
+        </div>
+        <div style="background:rgba(79,124,255,0.06); border:1px solid rgba(79,124,255,0.12); border-radius:var(--radius-sm); padding:12px 14px; font-size:12.5px; color:var(--text-secondary); line-height:1.6;">
+          <i class="ti ti-info-circle" style="color:var(--accent-blue); font-size:14px; vertical-align:-2px;" aria-hidden="true"></i>
+          &nbsp;Each additional bunk you take increases the number of classes needed to recover. Plan wisely.
+        </div>
+      </div>
+      <div class="calc-result" id="bunkResult">
+        <div class="calc-result-number" id="bunkCount">6</div>
+        <div class="calc-result-text" id="bunkText">classes you can safely bunk</div>
+        <div class="calc-result-sub" id="bunkSub">in DSA while staying above 75%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. FUTURE PLACEHOLDER SECTIONS -->
+  <div class="section-header mb-5">
+    <div class="section-title" style="color:var(--text-muted); font-size:13px;">
+      <i class="ti ti-clock" aria-hidden="true"></i>
+      Coming Soon
+    </div>
+  </div>
+  <div class="grid-3 fade-in delay-5">
+    <div class="placeholder-card">
+      <div class="placeholder-icon"><i class="ti ti-file-text" aria-hidden="true"></i></div>
+      <div class="placeholder-title">Course Materials</div>
+      <div class="placeholder-desc">Access PDFs, notes, and resources for all subjects</div>
+      <span class="coming-soon">Soon</span>
+    </div>
+    <div class="placeholder-card">
+      <div class="placeholder-icon"><i class="ti ti-speakerphone" aria-hidden="true"></i></div>
+      <div class="placeholder-title">Announcements</div>
+      <div class="placeholder-desc">Faculty notices, exam alerts, and circulars</div>
+      <span class="coming-soon">Soon</span>
+    </div>
+    <div class="placeholder-card">
+      <div class="placeholder-icon"><i class="ti ti-robot" aria-hidden="true"></i></div>
+      <div class="placeholder-title">AI Study Assistant</div>
+      <div class="placeholder-desc">Ask questions, get summaries, and study smarter</div>
+      <span class="coming-soon">Beta</span>
+    </div>
+  </div>
+
+    
+</main>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
