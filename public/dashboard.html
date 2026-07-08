@@ -45,6 +45,10 @@
       <i class="ti ti-calendar-event" aria-hidden="true"></i>
       <span class="nav-label">Timetable</span>
     </a>
+    <a class="nav-item" onclick="navigate('results')">
+    <i class="ti ti-chart-bar"></i>
+    <span class="nav-label">Results</span>
+</a>
     <a class="nav-item" data-label="Bunk Calculator" onclick="navigate('bunk')">
       <i class="ti ti-calculator" aria-hidden="true"></i>
       <span class="nav-label">Bunk Calculator</span>
@@ -351,7 +355,54 @@
       </table>
     </div>
   </div>
+ <section id="results-section" class="section">
 
+    <div class="section-header">
+        <h2>Examination</h2>
+    </div>
+
+    <div class="exam-cards">
+
+        <div class="exam-card" onclick="showExamSection('internal')">
+            <h3>📝 Internal Marks</h3>
+            <p>View CLA Marks</p>
+            <button
+    id="refreshInternalBtn"
+    class="refresh-btn"
+    onclick="event.stopPropagation(); refreshInternalMarks();">
+
+     Refresh
+
+</button>
+        </div>
+
+        <div class="exam-card" onclick="showExamSection('results')">
+            <h3>📚 CurrentSemester Results</h3>
+            <p>View Subject Grades</p>
+            <button
+        class="refresh-btn"
+        onclick="event.stopPropagation(); refreshResults();">
+         Refresh
+    </button>
+        </div>
+
+        <div class="exam-card" onclick="showExamSection('cgpa')">
+            <h3>🎓 SGPA / CGPA</h3>
+            <p>View Overall GPA</p>
+        </div>
+
+    </div>
+
+    <div id="examContent" class="exam-content">
+
+    <div class="empty-state">
+        <h3>Select a section</h3>
+        <p>Choose Internal Marks, Semester Results or SGPA.</p>
+    </div>
+
+</div>
+
+</section>
   <!-- 6. BUNK CALCULATOR -->
   <div class="card fade-in delay-4 mb-6" id="bunk-section">
     <div class="section-header">

@@ -90,18 +90,35 @@ async function connectSRM(reg_no, encryptedPassword) {
         let context;
 
         if (sessionExists(reg_no)) {
-            console.log("Saved session found");
 
-            context = await browser.newContext({
-                storageState: getSessionPath(reg_no)
-            });
+    console.log("Saved session found");
 
-            const page = await context.newPage();
-            await page.goto(
-                "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem"
-            );
- 
-        }
+    context = await browser.newContext({
+        storageState: getSessionPath(reg_no)
+    });
+
+    const page = await context.newPage();
+
+    await page.goto(
+        "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem"
+    );
+
+    // Session still valid?
+    if (await page.locator("#UserName").count() === 0) {
+
+        console.log("Using existing session");
+
+        return {
+            browser,
+            context,
+            page
+        };
+    }
+
+    console.log("Session expired, logging in again");
+
+    await context.close();
+}
 
         console.log("No saved session");
 
@@ -192,12 +209,14 @@ console.log(name, semester, programSection);
     );
 });
         await context.storageState({
-            path: getSessionPath(reg_no)
-        });
+    path: getSessionPath(reg_no)
+});
 
-        await browser.close();
-        return true;
-
+return {
+    browser,
+    context,
+    page
+};
     } catch (err) {
         console.log("connectSRM error:", err.message);
 
@@ -481,6 +500,647 @@ app.get("/timetable-data", async (req, res) => {
         }
     );
 });
+app.get("/refresh-results", async (req, res) => {
+
+    console.log("RESULTS ROUTE HIT");
+
+    if (!req.session.userId) {
+        return res.status(401).json({
+            message: "Login required"
+        });
+    }
+
+    const reg_no = req.session.reg_no;
+
+    let browser;
+
+    try {
+
+        // Get encrypted SRM password
+        const user = await new Promise((resolve, reject) => {
+
+            db.query(
+                "SELECT srm_password FROM users WHERE reg_no = ?",
+                [reg_no],
+                (err, results) => {
+
+                    if (err) reject(err);
+                    else resolve(results[0]);
+
+                }
+            );
+
+        });
+
+        // Login / reuse session
+        const connection = await connectSRM(
+            reg_no,
+            user.srm_password
+        );
+
+        browser = connection.browser;
+        const page = connection.page;
+
+        await page.goto(
+            "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
+            {
+                waitUntil: "networkidle"
+            }
+        );
+
+        // Open Examination
+        await page.getByText("Examination", { exact: true }).click();
+
+        await page.waitForSelector(
+            'text="Current Semester Results"',
+            {
+                state: "visible",
+                timeout: 10000
+            }
+        );
+
+        // Open Results
+        await page.getByText(
+            "Current Semester Results",
+            { exact: true }
+        ).click();
+
+        await page.waitForTimeout(3000);
+
+        const table = page.locator("table.table-striped").first();
+
+        await table.waitFor({
+            state: "visible",
+            timeout: 10000
+        });
+
+        // ==========================
+        // SCRAPE RESULTS
+        // ==========================
+
+        const results = await table.locator("tbody tr").evaluateAll(rows =>
+
+            rows
+                .map(row => {
+
+                    const cols = [...row.querySelectorAll("td")].map(td =>
+                        td.innerText.trim()
+                    );
+
+                    // Skip invalid rows
+                    if (cols.length < 6)
+                        return null;
+
+                    return {
+                        semester: cols[0],
+                        subjectCode: cols[1],
+                        subject: cols[2],
+                        credits: cols[3],
+                        grade: cols[4],
+                        result: cols[5]
+                    };
+
+                })
+                .filter(Boolean)
+
+        );
+
+       const sgpa = await page.evaluate(() => {
+
+    const text = document.body.innerText;
+
+    const match = text.match(/S\.?G\.?P\.?A\.?\s*[: ]?\s*([0-9.]+)/i);
+
+    return match ? match[1] : null;
+
+});
+
+console.log("SGPA:", sgpa);
+        // ==========================
+        // DELETE OLD RESULTS
+        // ==========================
+
+        await new Promise((resolve, reject) => {
+
+            db.query(
+                "DELETE FROM results WHERE reg_no = ?",
+                [reg_no],
+                err => {
+
+                    if (err) reject(err);
+                    else resolve();
+
+                }
+            );
+
+        });
+
+        // ==========================
+        // INSERT NEW RESULTS
+        // ==========================
+
+        for (const row of results) {
+
+            await new Promise((resolve, reject) => {
+
+                db.query(
+
+                    `INSERT INTO results
+                    (reg_no, semester, subject_code, subject_name, credits, grade, result)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+
+                    [
+                        reg_no,
+                        row.semester,
+                        row.subjectCode,
+                        row.subject,
+                        row.credits,
+                        row.grade,
+                        row.result
+                    ],
+
+                    err => {
+
+                        if (err) reject(err);
+                        else resolve();
+
+                    }
+
+                );
+
+            });
+
+        }
+         await new Promise((resolve, reject) => {
+
+    db.query(
+        "UPDATE users SET sgpa = ? WHERE reg_no = ?",
+        [sgpa, reg_no],
+        err => {
+            if (err) reject(err);
+            else resolve();
+        }
+    );
+
+});
+        await browser.close();
+
+       res.json({
+    results,
+    sgpa
+});
+
+    }
+
+    catch (err) {
+
+        console.error("RESULTS ERROR");
+        console.error(err);
+
+        if (browser)
+            await browser.close();
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+
+});
+app.get("/results-db", (req, res) => {
+
+    if (!req.session.userId)
+        return res.status(401).json({
+            message: "Login required"
+        });
+
+    db.query(
+        `SELECT
+            semester,
+            subject_code AS subjectCode,
+            subject_name AS subject,
+            credits,
+            grade,
+            result
+         FROM results
+         WHERE reg_no = ?
+         ORDER BY id`,
+        [req.session.reg_no],
+        (err, rows) => {
+
+            if (err)
+                return res.status(500).json({
+                    message: "Database error"
+                });
+
+            db.query(
+                "SELECT sgpa FROM users WHERE reg_no = ?",
+                [req.session.reg_no],
+                (err2, userRows) => {
+
+                    if (err2)
+                        return res.status(500).json({
+                            message: "Database error"
+                        });
+
+                    res.json({
+                        results: rows,
+                        sgpa: userRows[0]?.sgpa
+                    });
+
+                }
+            );
+
+        }
+    );
+
+});
+app.get("/refresh-internal", async (req, res) => {
+
+    console.log("INTERNAL MARKS ROUTE HIT");
+
+    if (!req.session.userId) {
+        return res.status(401).json({
+            message: "Login required"
+        });
+    }
+
+    const reg_no = req.session.reg_no;
+
+    let browser;
+
+    try {
+
+        // Get encrypted SRM password
+        const user = await new Promise((resolve, reject) => {
+
+            db.query(
+                "SELECT srm_password FROM users WHERE reg_no = ?",
+                [reg_no],
+                (err, results) => {
+
+                    if (err) reject(err);
+                    else resolve(results[0]);
+
+                }
+
+            );
+
+        });
+
+        // Login / reuse session
+        const connection = await connectSRM(
+            reg_no,
+            user.srm_password
+        );
+
+        browser = connection.browser;
+        const page = connection.page;
+
+        await page.goto(
+            "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
+            {
+                waitUntil: "networkidle"
+            }
+        );
+
+        // Open Examination
+        await page.getByText("Examination", { exact: true }).click();
+
+        await page.waitForSelector(
+            'text="Internal Mark Details"',
+            {
+                state: "visible",
+                timeout: 10000
+            }
+        );
+
+        // Open Internal Marks
+        await page.getByText(
+            "Internal Mark Details",
+            { exact: true }
+        ).click();
+
+        await page.waitForTimeout(3000);
+
+        const table = page.locator("table.table-striped").first();
+
+        await table.waitFor({
+            state: "visible",
+            timeout: 10000
+        });
+
+        // ==========================
+        // SCRAPE INTERNAL MARKS
+        // ==========================
+
+        const internalMarks = await table.locator("tbody tr").evaluateAll(rows =>
+
+            rows
+                .map(row => {
+
+                    const cols = [...row.querySelectorAll("td")].map(td =>
+                        td.innerText.trim()
+                    );
+
+                if (
+    cols.length < 4 ||
+    cols[2] === "Mark Secured(Conducted)" ||
+    cols[1] === "Name"
+)
+    return null;
+
+                    return {
+
+                        subjectCode: cols[0],
+                        subject: cols[1],
+                        marksObtained: cols[2],
+                        maxMarks: cols[3]
+
+                    };
+
+                })
+                .filter(Boolean)
+
+        );
+
+        console.log(internalMarks);
+
+        // ==========================
+        // DELETE OLD MARKS
+        // ==========================
+
+        await new Promise((resolve, reject) => {
+
+            db.query(
+                "DELETE FROM internal_marks WHERE reg_no = ?",
+                [reg_no],
+                err => {
+
+                    if (err) reject(err);
+                    else resolve();
+
+                }
+
+            );
+
+        });
+
+        // ==========================
+        // INSERT NEW MARKS
+        // ==========================
+
+        for (const row of internalMarks) {
+
+            await new Promise((resolve, reject) => {
+
+                db.query(
+
+                    `INSERT INTO internal_marks
+                    (reg_no, subject_code, subject_name, marks_obtained, max_marks)
+                    VALUES (?, ?, ?, ?, ?)`,
+
+                    [
+                        reg_no,
+                        row.subjectCode,
+                        row.subject,
+                        row.marksObtained,
+                        row.maxMarks
+                    ],
+
+                    err => {
+
+                        if (err) reject(err);
+                        else resolve();
+
+                    }
+
+                );
+
+            });
+
+        }
+
+        await browser.close();
+
+        res.json(internalMarks);
+
+    }
+
+    catch (err) {
+
+        console.error("INTERNAL MARKS ERROR");
+        console.error(err);
+
+        if (browser)
+            await browser.close();
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+
+});
+app.get("/internal", (req, res) => {
+
+    if (!req.session.userId) {
+        return res.status(401).json({
+            message: "Login required"
+        });
+    }
+
+    db.query(
+
+        `SELECT
+            subject_code AS subjectCode,
+            subject_name AS subject,
+            marks_obtained AS marksObtained,
+            max_marks AS maxMarks
+        FROM internal_marks
+        WHERE reg_no = ?
+        ORDER BY id`,
+
+        [req.session.reg_no],
+
+        (err, rows) => {
+
+            if (err) {
+                return res.status(500).json({
+                    message: "Database error"
+                });
+            }
+
+            res.json(rows);
+
+        }
+
+    );
+
+}); 
+app.get("/refresh-cgpa", async (req, res) => {
+
+    console.log("CGPA ROUTE HIT");
+
+    if (!req.session.userId) {
+        return res.status(401).json({
+            message: "Login required"
+        });
+    }
+
+    const reg_no = req.session.reg_no;
+
+    let browser;
+
+    try {
+
+        // Get encrypted SRM password
+        const user = await new Promise((resolve, reject) => {
+
+            db.query(
+                "SELECT srm_password FROM users WHERE reg_no = ?",
+                [reg_no],
+                (err, results) => {
+
+                    if (err) reject(err);
+                    else resolve(results[0]);
+
+                }
+
+            );
+
+        });
+
+        // Login / reuse session
+        const connection = await connectSRM(
+            reg_no,
+            user.srm_password
+        );
+
+        browser = connection.browser;
+        const page = connection.page;
+
+        await page.goto(
+            "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
+            {
+                waitUntil: "networkidle"
+            }
+        );
+
+        // Open Examination
+        await page.getByText("Examination", { exact: true }).click();
+
+        await page.waitForSelector(
+            'text="Exam Mark Details"',
+            {
+                state: "visible",
+                timeout: 10000
+            }
+        );
+
+        // Open Exam Mark Details
+        await page.getByText(
+            "Exam Mark Details",
+            { exact: true }
+        ).click();
+
+        await page.waitForTimeout(3000);
+
+        // ==========================
+        // SCRAPE CGPA
+        // ==========================
+
+        const cgpa = await page.evaluate(() => {
+
+            const text = document.body.innerText;
+
+            const match = text.match(/CGPA\s*:?\s*([0-9.]+)/i);
+
+            return match ? match[1] : null;
+
+        });
+
+        console.log("CGPA:", cgpa);
+
+        if (!cgpa) {
+            throw new Error("Unable to fetch CGPA");
+        }
+
+        // ==========================
+        // UPDATE DATABASE
+        // ==========================
+
+        await new Promise((resolve, reject) => {
+
+            db.query(
+
+                "UPDATE users SET cgpa = ? WHERE reg_no = ?",
+
+                [cgpa, reg_no],
+
+                err => {
+
+                    if (err) reject(err);
+                    else resolve();
+
+                }
+
+            );
+
+        });
+
+        await browser.close();
+
+        res.json({
+            success: true,
+            cgpa
+        });
+
+    }
+
+    catch (err) {
+
+        console.error("CGPA ERROR");
+        console.error(err);
+
+        if (browser)
+            await browser.close();
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+    });
+app.get("/cgpa", (req, res) => {
+
+    if (!req.session.userId) {
+        return res.status(401).json({
+            message: "Login required"
+        });
+    }
+
+    db.query(
+        "SELECT sgpa, cgpa FROM users WHERE reg_no = ?",
+        [req.session.reg_no],
+        (err, rows) => {
+
+            if (err) {
+                return res.status(500).json({
+                    message: "Database error"
+                });
+            }
+
+            res.json(rows[0]);
+
+        }
+    );
+
+});
+
 app.post("/logout", (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -499,4 +1159,5 @@ app.post("/logout", (req, res) => {
 });
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
+  console.log(`http://localhost:5000/login.html`);
 });

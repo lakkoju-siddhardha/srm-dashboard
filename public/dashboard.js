@@ -31,18 +31,40 @@ fetch("/check-session")
   }
 
   function navigate(section) {
-    document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+
+    document.querySelectorAll('.nav-item').forEach(function (el) {
+        el.classList.remove('active');
+    });
+
     event.currentTarget.classList.add('active');
+
     var target = null;
-    if (section === 'code') target = document.getElementById('code-section');
-    else if (section === 'attendance') target = document.getElementById('attendance-section');
-    else if (section === 'timetable') target = document.getElementById('timetable-section');
-    else if (section === 'bunk') target = document.getElementById('bunk-section');
+
+    if (section === 'code')
+        target = document.getElementById('code-section');
+
+    else if (section === 'attendance')
+        target = document.getElementById('attendance-section');
+
+    else if (section === 'timetable')
+        target = document.getElementById('timetable-section');
+
+    else if (section === 'bunk')
+        target = document.getElementById('bunk-section');
+
+   else if (section === 'results') {
+    target = document.getElementById('results-section');
+}
     if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
     }
-    if (window.innerWidth <= 700) closeMobileSidebar();
-  }
+
+    if (window.innerWidth <= 700)
+        closeMobileSidebar();
+}
 
   
 
@@ -208,4 +230,429 @@ if (logoutBtn) {
             alert("Logout failed");
         }
     });
+}
+async function showExamSection(type) {
+
+    const container = document.getElementById("examContent");
+
+    container.innerHTML = `
+        <div class="empty-state">
+            <h3>Loading...</h3>
+        </div>
+    `;
+
+    if (type === "results") {
+
+        await loadResults();
+
+    }
+    else if (type === "internal") {
+
+        loadInternalMarks();
+
+    }
+    else {
+
+        loadCGPA();
+
+    }
+
+}
+
+// ======================
+// Internal Marks
+// ======================
+
+async function loadInternalMarks() {
+
+    const container = document.getElementById("examContent");
+
+    try {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <h2>Loading Internal Marks...</h2>
+            </div>
+        `;
+
+        const res = await fetch("/internal");
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message);
+        }
+
+        let html = `
+
+        <div class="results-card">
+
+            <table class="results-table">
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Code</th>
+                        <th>Subject</th>
+                        <th>Marks</th>
+                        <th>Max Marks</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+        `;
+
+        data.forEach((sub, index) => {
+
+            html += `
+
+                <tr>
+
+                    <td>${index + 1}</td>
+
+                    <td>${sub.subjectCode}</td>
+
+                    <td>${sub.subject}</td>
+
+                    <td>${sub.marksObtained}</td>
+
+                    <td>${sub.maxMarks}</td>
+
+                </tr>
+
+            `;
+
+        });
+
+        html += `
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        `;
+
+        container.innerHTML = html;
+
+    }
+
+    catch(err){
+
+        console.error(err);
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <h2>Unable to load Internal Marks</h2>
+                <p>${err.message}</p>
+            </div>
+        `;
+
+    }
+
+}
+async function refreshInternalMarks() {
+
+    try {
+
+        const btn = document.getElementById("refreshInternalBtn");
+
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Refreshing...";
+
+        const res = await fetch("/refresh-internal");
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message);
+        }
+
+        await loadInternalMarks();
+
+        alert("Internal Marks Updated!");
+
+    } catch (err) {
+
+        alert(err.message);
+
+    } finally {
+
+        const btn = document.getElementById("refreshInternalBtn");
+
+        btn.disabled = false;
+        btn.innerHTML = "🔄 Refresh";
+
+    }
+
+}
+
+// ======================
+// CGPA
+// ======================
+
+async function loadCGPA() {
+
+    const container = document.getElementById("examContent");
+
+    try {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <h2>Loading SGPA / CGPA...</h2>
+            </div>
+        `;
+
+        const res = await fetch("/cgpa");
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message);
+        }
+
+        container.innerHTML = `
+
+        <div class="cgpa-card">
+
+            <h2>🎓 Academic Performance</h2>
+
+            <div class="cgpa-grid">
+
+                <div class="cg-box">
+                    <h3>Semester GPA</h3>
+                    <div class="cg-value">${data.sgpa ?? "--"}</div>
+                </div>
+
+                <div class="cg-box">
+                    <h3>Overall CGPA</h3>
+                    <div class="cg-value">${data.cgpa ?? "--"}</div>
+                </div>
+
+            </div>
+
+            <button
+                id="refreshCgpaBtn"
+                class="refresh-btn"
+                onclick="refreshCGPA()">
+
+                🔄 Refresh CGPA
+
+            </button>
+
+        </div>
+
+        `;
+
+    } catch(err){
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <h2>Unable to load CGPA</h2>
+                <p>${err.message}</p>
+            </div>
+        `;
+
+    }
+
+}
+async function refreshCGPA() {
+
+    try {
+
+        const btn = document.getElementById("refreshCgpaBtn");
+
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Refreshing...";
+
+        const res = await fetch("/refresh-cgpa");
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message);
+        }
+
+        await loadCGPA();
+
+        alert("CGPA Updated Successfully!");
+
+    } catch(err){
+
+        alert(err.message);
+
+    } finally{
+
+        const btn = document.getElementById("refreshCgpaBtn");
+
+        if(btn){
+            btn.disabled = false;
+            btn.innerHTML = "🔄 Refresh CGPA";
+        }
+
+    }
+
+}
+// ======================
+// Semester Results
+// ======================
+
+async function loadResults() {
+
+    const container = document.getElementById("examContent");
+
+    try {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>Loading Results...</h3>
+            </div>
+        `;
+
+      const res = await fetch("/results-db");
+        const data = await res.json();
+
+const results = data.results;
+const sgpa = data.sgpa;
+
+        console.log("Status:", res.status);
+        console.log("Results:", data);
+
+        if (!res.ok) {
+            throw new Error(data.message);
+        }
+
+        let html = `
+        <div class="results-card">
+          
+            <div class="table-responsive">
+
+            <table class="results-table">
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Code</th>
+                        <th>Subject</th>
+                        <th>Credits</th>
+                        <th>Grade</th>
+                        <th>Result</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+        `;
+
+        results.forEach((sub, index) => {
+
+            const grade = sub.grade ?? "-";
+            const result = sub.result ?? "-";
+            const subjectCode = sub.subjectCode ?? "-";
+            const subject = sub.subject ?? "-";
+            const credits = sub.credits ?? "-";
+
+            html += `
+                <tr>
+
+                    <td>${index + 1}</td>
+
+                    <td>${subjectCode}</td>
+
+                    <td>${subject}</td>
+
+                    <td>${credits}</td>
+
+                    <td>
+                        <span class="grade grade-${String(grade).replace(/\+/g, "plus")}">
+                            ${grade}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="pass">
+                            ${result}
+                        </span>
+                    </td>
+
+                </tr>
+            `;
+
+        });
+
+       html += `
+        </tbody>
+    </table>
+    </div>
+
+    <div class="sgpa-card">
+
+        <div class="sgpa-title">
+            Semester GPA
+        </div>
+
+        <div class="sgpa-value">
+            ${sgpa ?? "--"}
+        </div>
+
+    </div>
+
+</div>
+`;
+
+        container.innerHTML = html;
+
+    }
+    catch (err) {
+
+        console.error("Results Error:", err);
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <h2>⚠ Unable to load results</h2>
+                <p>${err.message}</p>
+            </div>
+        `;
+
+    }
+
+}
+async function refreshResults() {
+
+    try {
+
+        const btn = document.querySelector(".refresh-btn");
+
+        btn.disabled = true;
+        btn.innerText = "Refreshing...";
+
+        const res = await fetch("/refresh-results");
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message);
+        }
+
+        alert("Results updated successfully!");
+
+        // Reload results from MySQL
+        await loadResults();
+
+    }
+    catch (err) {
+
+        alert(err.message);
+
+    }
+    finally {
+
+        const btn = document.querySelector(".refresh-btn");
+
+        btn.disabled = false;
+        btn.innerText = "🔄 Refresh";
+
+    }
+
 }
