@@ -1,5 +1,8 @@
+
+require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
+const MySQLStore = require("express-mysql-session")(session);
 const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
@@ -8,23 +11,14 @@ const fs = require("fs");
 const { chromium } = require("playwright");
 const Tesseract = require("tesseract.js");
 const sharp = require("sharp");
-require("dotenv").config();
+
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000   // 7 days
-    }
-  })
-);
+
 
 app.use(express.static("public"));
 
@@ -34,7 +28,39 @@ const db = mysql.createConnection({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME
 });
+const sessionStore = new MySQLStore({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+});
+app.use(
+    session({
 
+        key: "srm.sid",
+
+        secret: process.env.SESSION_SECRET,
+
+        store: sessionStore,
+
+        resave: false,
+
+        saveUninitialized: false,
+
+        cookie: {
+
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+
+            httpOnly: true,
+
+            sameSite: "lax",
+
+            secure: false
+
+        }
+
+    })
+);
 db.connect((err) => {
   if (err) {
     console.log("DB connection failed:", err);
@@ -85,7 +111,7 @@ async function connectSRM(reg_no, encryptedPassword) {
     let browser;
 
     try {
-        browser = await chromium.launch({ headless: false });
+        browser = await chromium.launch({ headless: true });
 
         let context;
 
