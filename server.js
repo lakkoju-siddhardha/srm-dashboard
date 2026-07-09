@@ -244,52 +244,125 @@ async function connectSRM(reg_no, encryptedPassword) {
         await loginBtn.waitFor({ state: "visible" });
         await loginBtn.click({ force: true });
 
-        await page.waitForURL(
-            "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
-            { timeout: 15000 }
-        );
-        const profileRows = await page.$$eval(
-    ".table.table-striped tbody tr",
-    rows => rows.map(row => {
-        const cols = [...row.querySelectorAll("td")].map(td =>
-            td.innerText.trim()
-        );
-        return cols;
-    })
+      await page.waitForURL(
+    "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
+    { timeout: 15000 }
 );
 
-     console.log(profileRows);
-     let name = "";
-let semester = "";
-let programSection = "";
-
-profileRows.forEach(row => {
-    if (row[0].includes("Student Name")) {
-        name = row[2];
+await page.waitForSelector(
+    ".table.table-striped tbody tr",
+    {
+        state: "visible",
+        timeout: 15000
     }
+);
+    const scrapeProfile = async () => {
 
-    if (row[0].includes("Semester")) {
-        semester = row[2];
-    }
+    const rows = await page.$$eval(
+        ".table.table-striped tbody tr",
+        rows => rows.map(row =>
+            [...row.querySelectorAll("td")].map(td => td.innerText.trim())
+        )
+    );
 
-    if (row[0].includes("Program / Section")) {
-        programSection = row[2];
-    }
-});
+    let name = "";
+    let semester = "";
+    let programSection = "";
 
-console.log(name, semester, programSection);
-     await new Promise((resolve, reject) => {
-    db.query(
-        `UPDATE users
-         SET name=?, semester=?, program_section=?
-         WHERE reg_no=?`,
-        [name, semester, programSection, reg_no],
-        (err) => {
-            if (err) reject(err);
-            else resolve();
+    rows.forEach(row => {
+
+        if (row[0]?.includes("Student Name"))
+            name = row[2];
+
+        if (row[0]?.includes("Semester"))
+            semester = row[2];
+
+        if (row[0]?.includes("Program / Section"))
+            programSection = row[2];
+
+    });
+
+    return {
+        name,
+        semester,
+        programSection
+    };
+
+};
+
+// First attempt
+let { name, semester, programSection } = await scrapeProfile();
+
+console.log("First Attempt:", name, semester, programSection);
+
+// Retry once if profile is empty
+if (!name || !semester || !programSection) {
+
+    console.log("Retrying profile scrape...");
+
+    await page.reload();
+
+    await page.waitForSelector(
+        ".table.table-striped tbody tr",
+        {
+            state: "visible",
+            timeout: 15000
         }
     );
-});
+
+    ({ name, semester, programSection } = await scrapeProfile());
+
+    console.log("Second Attempt:", name, semester, programSection);
+
+}
+
+// Save only if data exists
+if (name && semester && programSection) {
+
+    await new Promise((resolve, reject) => {
+
+        db.query(
+            `UPDATE users
+             SET name=?, semester=?, program_section=?
+             WHERE reg_no=?`,
+            [name, semester, programSection, reg_no],
+            err => {
+
+                if (err) reject(err);
+                else resolve();
+
+            }
+        );
+
+    });
+
+    console.log("Profile saved successfully.");
+
+} else {
+
+    console.log("Profile still empty. Database not updated.");
+
+}    
+if (name && semester && programSection) {
+
+    await new Promise((resolve, reject) => {
+        db.query(
+            `UPDATE users
+             SET name=?, semester=?, program_section=?
+             WHERE reg_no=?`,
+            [name, semester, programSection, reg_no],
+            (err) => {
+                if (err) reject(err);
+                else resolve();
+            }
+        );
+    });
+
+} else {
+
+    console.log("Profile details not loaded. Skipping database update.");
+
+}
         await context.storageState({
     path: getSessionPath(reg_no)
 });
