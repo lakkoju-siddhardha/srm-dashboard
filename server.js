@@ -241,22 +241,36 @@ async function connectSRM(reg_no, encryptedPassword) {
 
         const loginBtn = page.locator('button[type="submit"]').last();
 
-        await loginBtn.waitFor({ state: "visible" });
-        await loginBtn.click({ force: true });
+       await loginBtn.waitFor({ state: "visible" });
+await loginBtn.click({ force: true });
 
-      await page.waitForURL(
-    "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
-    { timeout: 15000 }
-);
+// Give SRM time to process login
+await page.waitForTimeout(2000);
 
+console.log("Current URL:", page.url());
+
+if (!page.url().includes("HRDSystem")) {
+
+    await page.waitForURL(
+        "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
+        {
+            timeout: 30000
+        }
+    );
+
+}
+
+// Wait until profile table is loaded
 await page.waitForSelector(
     ".table.table-striped tbody tr",
     {
         state: "visible",
-        timeout: 15000
+        timeout: 30000
     }
 );
-    const scrapeProfile = async () => {
+
+// Function to scrape profile
+const scrapeProfile = async () => {
 
     const rows = await page.$$eval(
         ".table.table-striped tbody tr",
@@ -282,11 +296,7 @@ await page.waitForSelector(
 
     });
 
-    return {
-        name,
-        semester,
-        programSection
-    };
+    return { name, semester, programSection };
 
 };
 
@@ -306,7 +316,7 @@ if (!name || !semester || !programSection) {
         ".table.table-striped tbody tr",
         {
             state: "visible",
-            timeout: 15000
+            timeout: 30000
         }
     );
 
@@ -316,7 +326,7 @@ if (!name || !semester || !programSection) {
 
 }
 
-// Save only if data exists
+// Update database only if profile is available
 if (name && semester && programSection) {
 
     await new Promise((resolve, reject) => {
@@ -342,27 +352,18 @@ if (name && semester && programSection) {
 
     console.log("Profile still empty. Database not updated.");
 
-}    
-if (name && semester && programSection) {
-
-    await new Promise((resolve, reject) => {
-        db.query(
-            `UPDATE users
-             SET name=?, semester=?, program_section=?
-             WHERE reg_no=?`,
-            [name, semester, programSection, reg_no],
-            (err) => {
-                if (err) reject(err);
-                else resolve();
-            }
-        );
-    });
-
-} else {
-
-    console.log("Profile details not loaded. Skipping database update.");
-
 }
+
+// Save Playwright session
+await context.storageState({
+    path: getSessionPath(reg_no)
+});
+
+return {
+    browser,
+    context,
+    page
+};
         await context.storageState({
     path: getSessionPath(reg_no)
 });
@@ -372,12 +373,21 @@ return {
     context,
     page
 };
-    } catch (err) {
-        console.log("connectSRM error:", err.message);
+    } 
+    catch (err) {
 
-        if (browser) await browser.close();
-        throw err;
+    console.log("connectSRM error:", err.message);
+
+    if (typeof page !== "undefined") {
+        console.log("Final URL:", page.url());
     }
+
+    if (browser)
+        await browser.close();
+
+    throw err;
+
+}
 }
 
 app.get("/", (req, res) => {
@@ -810,11 +820,22 @@ app.get("/refresh-results", async (req, res) => {
 
        const sgpa = await page.evaluate(() => {
 
-    const text = document.body.innerText;
+    const rows = [...document.querySelectorAll("tr")];
 
-    const match = text.match(/S\.?G\.?P\.?A\.?\s*[: ]?\s*([0-9.]+)/i);
+    for (const row of rows) {
 
-    return match ? match[1] : null;
+        const cells = row.querySelectorAll("td");
+
+        if (
+            cells.length >= 2 &&
+            cells[0].innerText.trim().includes("S.G.P.A")
+        ) {
+            return cells[1].innerText.trim();
+        }
+
+    }
+
+    return null;
 
 });
 
