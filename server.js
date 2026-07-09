@@ -160,6 +160,11 @@ function decrypt(text) {
 
     return decrypted;
 }
+if (!user) {
+    return res.status(404).json({
+        message: "User not found in database"
+    });
+}
 async function connectSRM(reg_no, encryptedPassword) {
     console.log("Attempting to connect to SRM");
     const srm_password = decrypt(encryptedPassword);
@@ -308,73 +313,105 @@ return {
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
-app.post("/register", async (req, res) => {
-    try {
-        const { reg_no, password } = req.body;
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const encryptedPassword = encrypt(password);
-
-        const sql = "INSERT INTO users (reg_no, password, srm_password) VALUES (?, ?, ?)";
-
-        db.query(sql, [reg_no, hashedPassword, encryptedPassword], (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.json({ message: "Registration failed" });
-            }
-
-            res.json({ message: "Registration successful" });
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.json({ message: "Server error" });
-    }
-});
 app.post("/login", async (req, res) => {
+
     console.log("LOGIN ROUTE HIT");
+
     const { reg_no, password } = req.body;
 
-    const sql = "SELECT * FROM users WHERE reg_no = ?";
+    try {
 
-    db.query(sql, [reg_no], async (err, results) => {
-        if (err) {
-            return res.json({ message: "Database error" });
+        let user = await new Promise((resolve, reject) => {
+
+            db.query(
+                "SELECT * FROM users WHERE reg_no = ?",
+                [reg_no],
+                (err, results) => {
+
+                    if (err) reject(err);
+                    else resolve(results[0]);
+
+                }
+            );
+
+        });
+
+        // First time user → create account automatically
+        if (!user) {
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const encryptedPassword = encrypt(password);
+
+            const result = await new Promise((resolve, reject) => {
+
+                db.query(
+                    "INSERT INTO users (reg_no, password, srm_password) VALUES (?, ?, ?)",
+                    [reg_no, hashedPassword, encryptedPassword],
+                    (err, result) => {
+
+                        if (err) {
+    console.error("INSERT ERROR:", err);
+    reject(err);
+}
+                        else resolve(result);
+
+                    }
+                );
+
+            });
+
+            user = {
+                id: result.insertId,
+                reg_no,
+                password: hashedPassword,
+                srm_password: encryptedPassword
+            };
+
         }
 
-        if (results.length === 0) {
-            return res.json({ message: "User not found" });
-        }
+        // Existing user → verify password
+        else {
 
-        const user = results[0];
+            const match = await bcrypt.compare(password, user.password);
 
-        const match = await bcrypt.compare(password, user.password);
+            if (!match) {
 
-        if (!match) {
-            return res.json({ message: "Wrong password" });
+                return res.json({
+                    message: "Wrong password"
+                });
+
+            }
+
         }
 
         req.session.userId = user.id;
         req.session.reg_no = user.reg_no;
-        console.log("Before auto connect");
-console.log("sessionExists =", sessionExists(user.reg_no));
-       try {
-    if (!sessionExists(user.reg_no)) {
-        console.log("Auto connecting SRM...");
-        await connectSRM(user.reg_no, user.srm_password);
-    }
-} catch (err) {
-    console.log("SRM Auto Connect Failed:", err.message);
-    return res.json({
-        message: "Website login success but SRM connection failed"
-    });
-}
 
+        if (!sessionExists(user.reg_no)) {
+
+            console.log("Auto connecting SRM...");
+            await connectSRM(user.reg_no, user.srm_password);
+
+        }
 
         res.json({
             message: "Login successful"
         });
+
+    }
+
+    catch (err) {
+
+    console.error("LOGIN ERROR:");
+    console.error(err);
+
+    res.status(500).json({
+        message: err.message
     });
+
+}
+
 });
 app.get("/dashboard-data", (req, res) => {
     if (!req.session.userId) {
@@ -612,7 +649,7 @@ app.get("/refresh-results", async (req, res) => {
             );
 
         });
-
+         console.log("User from DB:", user);
         // Login / reuse session
         const connection = await connectSRM(
             reg_no,
@@ -869,7 +906,7 @@ app.get("/refresh-internal", async (req, res) => {
             );
 
         });
-
+        console.log("User from DB:", user);
         // Login / reuse session
         const connection = await connectSRM(
             reg_no,
@@ -1093,7 +1130,7 @@ app.get("/refresh-cgpa", async (req, res) => {
             );
 
         });
-
+    console.log("User from DB:", user);
         // Login / reuse session
         const connection = await connectSRM(
             reg_no,
