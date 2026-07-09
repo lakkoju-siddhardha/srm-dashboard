@@ -306,23 +306,7 @@ return {
         throw err;
     }
 }
-(async () => {
 
-    try {
-
-        const res = await fetch("/check-session");
-
-        const data = await res.json();
-
-        if (data.loggedIn) {
-            window.location.href = "/dashboard.html";
-        }
-
-    } catch (err) {
-        console.log(err);
-    }
-
-})();
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
