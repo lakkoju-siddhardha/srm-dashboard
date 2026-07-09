@@ -14,7 +14,7 @@ const sharp = require("sharp");
 
 
 const app = express();
-
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -326,15 +326,16 @@ app.post("/login", async (req, res) => {
                 [reg_no],
                 (err, results) => {
 
-                    if (err) reject(err);
-                    else resolve(results[0]);
+                    if (err) return reject(err);
+
+                    resolve(results[0]);
 
                 }
             );
 
         });
 
-        // First time user → create account automatically
+        // First time login → create account
         if (!user) {
 
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -348,10 +349,11 @@ app.post("/login", async (req, res) => {
                     (err, result) => {
 
                         if (err) {
-    console.error("INSERT ERROR:", err);
-    reject(err);
-}
-                        else resolve(result);
+                            console.error("INSERT ERROR:", err);
+                            return reject(err);
+                        }
+
+                        resolve(result);
 
                     }
                 );
@@ -367,24 +369,24 @@ app.post("/login", async (req, res) => {
 
         }
 
-        // Existing user → verify password
+        // Existing user
         else {
 
             const match = await bcrypt.compare(password, user.password);
 
             if (!match) {
-
-                return res.json({
+                return res.status(401).json({
                     message: "Wrong password"
                 });
-
             }
 
         }
 
+        // Save session
         req.session.userId = user.id;
         req.session.reg_no = user.reg_no;
 
+        // Connect to SRM if session file doesn't exist
         if (!sessionExists(user.reg_no)) {
 
             console.log("Auto connecting SRM...");
@@ -392,22 +394,34 @@ app.post("/login", async (req, res) => {
 
         }
 
-        res.json({
-            message: "Login successful"
+        // Explicitly save session before responding
+        req.session.save((err) => {
+
+            if (err) {
+                console.error("SESSION SAVE ERROR:", err);
+
+                return res.status(500).json({
+                    message: "Session could not be saved"
+                });
+            }
+
+            res.json({
+                message: "Login successful"
+            });
+
         });
 
     }
 
     catch (err) {
 
-    console.error("LOGIN ERROR:");
-    console.error(err);
+        console.error("LOGIN ERROR:", err);
 
-    res.status(500).json({
-        message: err.message
-    });
+        res.status(500).json({
+            message: err.message
+        });
 
-}
+    }
 
 });
 app.get("/dashboard-data", (req, res) => {

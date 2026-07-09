@@ -6,7 +6,7 @@
         const data = await res.json();
 
         if (data.loggedIn) {
-            window.location.href = "/dashboard.html";
+            window.location.replace("/dashboard.html");
             return;
         }
 
