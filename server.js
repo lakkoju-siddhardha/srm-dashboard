@@ -423,7 +423,7 @@ app.post("/submit-code", async (req, res) => {
 
         const srm_password = decrypt(user.srm_password);
 
-        browser = await chromium.launch({ headless: false });
+        browser = await chromium.launch({ headless: true });
 
         const context = await browser.newContext({
             storageState: getSessionPath(reg_no)
@@ -512,7 +512,7 @@ app.get("/timetable-data", async (req, res) => {
     let browser;
 
     try {
-        browser = await chromium.launch({ headless: false });
+        browser = await chromium.launch({ headless: true });
 
         const context = await browser.newContext({
             storageState: getSessionPath(reg_no)
