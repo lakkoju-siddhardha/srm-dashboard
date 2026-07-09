@@ -306,7 +306,7 @@ return {
     }
 }
 app.get("/", (req, res) => {
-  res.send("SRM Dashboard Backend Running");
+    res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 app.post("/register", async (req, res) => {
     try {
