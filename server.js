@@ -59,7 +59,7 @@ app.use(
 
             sameSite: "lax",
 
-            secure: false
+           secure: process.env.NODE_ENV === "production"
 
         }
 
@@ -306,6 +306,23 @@ return {
         throw err;
     }
 }
+(async () => {
+
+    try {
+
+        const res = await fetch("/check-session");
+
+        const data = await res.json();
+
+        if (data.loggedIn) {
+            window.location.href = "/dashboard.html";
+        }
+
+    } catch (err) {
+        console.log(err);
+    }
+
+})();
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
@@ -421,16 +438,17 @@ app.get("/dashboard-data", (req, res) => {
     });
 });
 app.get("/check-session", (req, res) => {
+
     if (req.session.userId) {
-        res.json({
-            loggedIn: true,
-            reg_no: req.session.reg_no
-        });
-    } else {
-        res.json({
-            loggedIn: false
+        return res.json({
+            loggedIn: true
         });
     }
+
+    res.json({
+        loggedIn: false
+    });
+
 });
 app.post("/submit-code", async (req, res) => {
     if (!req.session.userId) {
