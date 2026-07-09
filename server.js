@@ -21,7 +21,10 @@ app.use(express.urlencoded({ extended: true }));
 
 
 app.use(express.static("public"));
-
+console.log("DB_HOST =", process.env.DB_HOST);
+console.log("DB_PORT =", process.env.DB_PORT);
+console.log("DB_USER =", process.env.DB_USER);
+console.log("DB_NAME =", process.env.DB_NAME);
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -63,12 +66,63 @@ app.use(
     })
 );
 db.connect((err) => {
-  if (err) {
-    console.log("DB connection failed:", err);
-    return;
-  }
-  console.log("MySQL Connected");
+
+    if (err) {
+        console.log("DB connection failed:", err);
+        return;
+    }
+
+    console.log("MySQL Connected");
+
+    createTables();
+
 });
+async function createTables() {
+
+    db.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            reg_no VARCHAR(20) UNIQUE,
+            name VARCHAR(100),
+            semester VARCHAR(20),
+            program_section VARCHAR(100),
+            password VARCHAR(255),
+            srm_password TEXT,
+            sgpa DECIMAL(4,2),
+            cgpa DECIMAL(4,2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    db.query(`
+        CREATE TABLE IF NOT EXISTS results (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            reg_no VARCHAR(20),
+            semester VARCHAR(20),
+            subject_code VARCHAR(20),
+            subject_name VARCHAR(255),
+            credits VARCHAR(10),
+            grade VARCHAR(10),
+            result VARCHAR(20),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    db.query(`
+        CREATE TABLE IF NOT EXISTS internal_marks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            reg_no VARCHAR(20),
+            subject_code VARCHAR(20),
+            subject_name VARCHAR(255),
+            marks_obtained DECIMAL(5,2),
+            max_marks DECIMAL(5,2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    console.log("Tables verified.");
+
+}
 function getSessionPath(reg_no) {
     return path.join(__dirname, "sessions", `${reg_no}.json`);
 }
