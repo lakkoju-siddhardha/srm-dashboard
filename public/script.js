@@ -1,3 +1,22 @@
+(async () => {
+
+    try {
+
+        const res = await fetch("/check-session");
+        const data = await res.json();
+
+        if (data.loggedIn) {
+            window.location.href = "/dashboard.html";
+            return;
+        }
+
+    } catch (err) {
+        console.error(err);
+    }
+
+})();
+
+
 const loginForm = document.getElementById("loginForm");
 
 if (loginForm) {
