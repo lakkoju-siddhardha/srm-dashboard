@@ -285,6 +285,8 @@ async function loadInternalMarks() {
         let html = `
 
         <div class="results-card">
+           
+         <div class="table-responsive">
 
             <table class="results-table">
 
@@ -331,7 +333,7 @@ async function loadInternalMarks() {
                 </tbody>
 
             </table>
-
+           </div>
         </div>
 
         `;

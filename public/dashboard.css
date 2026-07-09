@@ -761,6 +761,26 @@
     color:#4f8cff;
 
 }
+.table-responsive{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+}
+
+@media (max-width:768px){
+
+    .results-table{
+        min-width:700px;
+    }
+
+    .results-table th,
+    .results-table td{
+        padding:10px;
+        font-size:13px;
+        white-space:nowrap;
+    }
+
+}
 .sgpa-card{
 
     margin-top:15px;
