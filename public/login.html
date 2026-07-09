@@ -7,37 +7,47 @@
     <link rel="stylesheet" href="login.css">
 </head>
 <body>
+
     <div class="container">
+
         <div class="card">
+
             <h1>SRM Dashboard</h1>
-            <p>Student Portal Access</p>
+            <p>Login using your SRM credentials</p>
 
-            <div class="forms">
+            <div class="form-box">
 
-                <div class="form-box">
-                    <h2>Register</h2>
-                    <form id="registerForm">
-                        <input type="text" id="reg_no" placeholder="Register Number" required>
-                        <input type="password" id="password" placeholder="Password" required>
-                        <button type="submit">Register</button>
-                    </form>
-                </div>
+                <h2>Login</h2>
 
-                <div class="divider"></div>
+                <form id="loginForm">
 
-                <div class="form-box">
-                    <h2>Login</h2>
-                    <form id="loginForm">
-                        <input type="text" id="login_reg_no" placeholder="Register Number" required>
-                        <input type="password" id="login_password" placeholder="Password" required>
-                        <button type="submit">Login</button>
-                    </form>
-                </div>
+                    <input
+                        type="text"
+                        id="login_reg_no"
+                        placeholder="Registration Number"
+                        required
+                    >
+
+                    <input
+                        type="password"
+                        id="login_password"
+                        placeholder="SRM Password"
+                        required
+                    >
+
+                    <button type="submit">
+                        Login
+                    </button>
+
+                </form>
 
             </div>
+
         </div>
+
     </div>
 
     <script src="script.js"></script>
+
 </body>
 </html>
