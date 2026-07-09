@@ -160,11 +160,7 @@ function decrypt(text) {
 
     return decrypted;
 }
-if (!user) {
-    return res.status(404).json({
-        message: "User not found in database"
-    });
-}
+
 async function connectSRM(reg_no, encryptedPassword) {
     console.log("Attempting to connect to SRM");
     const srm_password = decrypt(encryptedPassword);
