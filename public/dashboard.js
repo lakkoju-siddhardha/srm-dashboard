@@ -120,50 +120,103 @@ if (codeInput) {
   var subjectNames = [
     'DSA', 'DBMS', 'Operating Systems', 'Mathematics', 'Physics'
   ];
+ 
 
-  function calcBunks() {
-    var sel = document.getElementById('bunkSubject');
-    var parts = sel.value.split(',');
-    var pct = parseFloat(parts[0]);
-    var total = parseInt(parts[1]);
-    var threshold = parseInt(document.getElementById('bunkThreshold').value);
 
-    var attended = Math.round(pct / 100 * total);
-    var safeBunks = 0;
+function calcBunks() {
 
-    for (var i = 0; i <= 50; i++) {
-      var newTotal = total + i;
-      var newPct = attended / newTotal * 100;
-      if (newPct >= threshold) {
-        safeBunks = i;
-      } else break;
+    const select = document.getElementById("bunkSubject");
+
+    if (!select || select.value === "") {
+        return;
     }
 
-    var subjName = sel.options[sel.selectedIndex].text.split(' (')[0];
-    var bunkCount = document.getElementById('bunkCount');
-    var bunkText = document.getElementById('bunkText');
-    var bunkSub = document.getElementById('bunkSub');
+    const index = parseInt(select.value);
+
+    const subject = attendanceSubjects[index];
+
+    if (!subject) {
+        return;
+    }
+
+    const attended = Number(subject.attended);
+    const total = Number(subject.total);
+
+    const threshold = Number(
+        document.getElementById("bunkThreshold").value
+    );
+
+    // --------------------------------
+    // Calculate maximum classes to bunk
+    // --------------------------------
+
+    let safeBunks = 0;
+
+    while (
+        (attended / (total + safeBunks + 1)) * 100 >= threshold
+    ) {
+        safeBunks++;
+    }
+
+    // --------------------------------
+    // Update bunk result
+    // --------------------------------
+
+    const bunkCount = document.getElementById("bunkCount");
+    const bunkText = document.getElementById("bunkText");
+    const bunkSub = document.getElementById("bunkSub");
 
     bunkCount.textContent = safeBunks;
-    if (safeBunks === 0) {
-      bunkCount.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-      bunkText.textContent = 'classes you can safely bunk';
-      bunkSub.textContent = 'You need more classes to maintain ' + threshold + '%';
-    } else if (safeBunks <= 2) {
-      bunkCount.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-      bunkText.textContent = safeBunks === 1 ? 'class you can safely bunk' : 'classes you can safely bunk';
-      bunkSub.textContent = 'in ' + subjName + ' while staying above ' + threshold + '%';
-    } else {
-      bunkCount.style.background = 'var(--grad-primary)';
-      bunkText.textContent = 'classes you can safely bunk';
-      bunkSub.textContent = 'in ' + subjName + ' while staying above ' + threshold + '%';
-    }
-    bunkCount.style.webkitBackgroundClip = 'text';
-    bunkCount.style.webkitTextFillColor = 'transparent';
-    bunkCount.style.backgroundClip = 'text';
-  }
 
-  calcBunks();
+    if (safeBunks === 0) {
+
+        bunkText.textContent = "classes you can safely bunk";
+
+        bunkSub.textContent =
+            `You cannot bunk another class while maintaining ${threshold}%`;
+
+    } else if (safeBunks === 1) {
+
+        bunkText.textContent =
+            "class you can safely bunk";
+
+        bunkSub.textContent =
+            `in ${subject.subjectCode} while staying above ${threshold}%`;
+
+    } else {
+
+        bunkText.textContent =
+            "classes you can safely bunk";
+
+        bunkSub.textContent =
+            `in ${subject.subjectCode} while staying above ${threshold}%`;
+    }
+
+    // --------------------------------
+    // Future attendance calculation
+    // --------------------------------
+
+    const futureInput = document.getElementById("futureClasses");
+
+    if (futureInput) {
+
+        const futureClasses =
+            Number(futureInput.value) || 0;
+
+        const futureAttendance =
+            ((attended + futureClasses) /
+            (total + futureClasses)) * 100;
+
+        const futureResult =
+            document.getElementById("futureAttendance");
+
+        if (futureResult) {
+
+            futureResult.textContent =
+                futureAttendance.toFixed(2) + "%";
+        }
+    }
+}
 async function loadProfile() {
     try {
         
@@ -798,4 +851,58 @@ async function refreshResults() {
 
 document.addEventListener("DOMContentLoaded", () => {
     loadTimetable();
+});
+let attendanceSubjects = [];
+
+async function loadBunkSubjects() {
+    const select = document.getElementById("bunkSubject");
+
+    try {
+        const response = await fetch("/attendance-data");
+
+        if (!response.ok) {
+            throw new Error("Failed to load attendance data");
+        }
+
+        const data = await response.json();
+
+        console.log("Bunk calculator data:", data);
+
+        attendanceSubjects = data.attendance || [];
+
+        select.innerHTML = "";
+
+        if (attendanceSubjects.length === 0) {
+            select.innerHTML = `
+                <option value="">No subjects found</option>
+            `;
+            return;
+        }
+
+        attendanceSubjects.forEach((subject, index) => {
+
+            const option = document.createElement("option");
+
+            option.value = index;
+
+            option.textContent =
+                `${subject.subjectCode} - ${subject.subjectName} (${subject.attendance}%)`;
+
+            select.appendChild(option);
+        });
+
+        calcBunks();
+
+    } catch (error) {
+
+        console.error("Bunk calculator error:", error);
+
+        select.innerHTML = `
+            <option value="">Unable to load subjects</option>
+        `;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadBunkSubjects();
 });

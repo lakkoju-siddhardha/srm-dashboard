@@ -860,11 +860,13 @@ app.get("/attendance-data", async (req, res) => {
                         return null;
                     }
 
-                    return {
-                        subjectCode: cells[0].innerText.trim(),
-                        subjectName: cells[1].innerText.trim(),
-                        attendance: cells[8].innerText.trim()
-                    };
+                   return {
+    subjectCode: cells[0].innerText.trim(),
+    subjectName: cells[1].innerText.trim(),
+    total: parseInt(cells[2].innerText.trim()) || 0,
+    attended: parseInt(cells[3].innerText.trim()) || 0,
+    attendance: cells[8].innerText.trim()
+};
 
                 })
                 .filter(Boolean);
