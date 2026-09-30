@@ -1363,3 +1363,227 @@
   .delay-3 { animation-delay: 0.15s; }
   .delay-4 { animation-delay: 0.2s; }
   .delay-5 { animation-delay: 0.25s; }
+
+  /* ================================
+   TIMETABLE
+================================ */
+
+.dashboard-section {
+    width: 100%;
+    margin-top: 25px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.section-header p {
+    margin: 5px 0 0;
+    color: #8d96a8;
+    font-size: 14px;
+}
+
+/* Loading */
+
+.timetable-loading {
+    padding: 30px;
+    text-align: center;
+    color: #8d96a8;
+    background: #111827;
+    border-radius: 12px;
+}
+
+/* Error */
+
+.timetable-error {
+    padding: 20px;
+    text-align: center;
+    color: #ff6b6b;
+    background: rgba(255, 80, 80, 0.08);
+    border: 1px solid rgba(255, 80, 80, 0.2);
+    border-radius: 12px;
+}
+
+/* Table container */
+
+.timetable-wrapper {
+    width: 100%;
+    background: #111827;
+    border-radius: 14px;
+    border: 1px solid #263247;
+    overflow: hidden;
+}
+
+.timetable-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Table */
+
+.timetable-table {
+    width: 100%;
+    min-width: 950px;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+/* Header */
+
+.timetable-table thead th {
+    background: #263d54;
+    color: white;
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    border-right: 1px solid #40536a;
+    border-bottom: 1px solid #40536a;
+    white-space: nowrap;
+}
+
+/* Cells */
+
+.timetable-table tbody td {
+    padding: 13px 10px;
+    text-align: center;
+    color: #e5e7eb;
+    font-size: 13px;
+    line-height: 1.4;
+    border-right: 1px solid #263247;
+    border-bottom: 1px solid #263247;
+    min-width: 100px;
+}
+
+/* Day column */
+
+.timetable-table tbody td:first-child {
+    background: #1b2638;
+    color: #ffffff;
+    font-weight: 700;
+    min-width: 110px;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+}
+
+/* Empty cells */
+
+.timetable-table tbody td:empty {
+    background: #151e2d;
+}
+
+/* Hover */
+
+.timetable-table tbody tr:hover td {
+    background: #1a2638;
+}
+
+/* Subject text */
+
+.timetable-table tbody td:not(:first-child) {
+    white-space: normal;
+}
+
+/* ================================
+   SCROLLBAR
+================================ */
+
+.timetable-scroll::-webkit-scrollbar {
+    height: 8px;
+}
+
+.timetable-scroll::-webkit-scrollbar-track {
+    background: #111827;
+}
+
+.timetable-scroll::-webkit-scrollbar-thumb {
+    background: #46566d;
+    border-radius: 10px;
+}
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width: 768px) {
+
+    .dashboard-section {
+        margin-top: 15px;
+    }
+
+    .section-header {
+        margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+        font-size: 21px;
+    }
+
+    .section-header p {
+        font-size: 12px;
+    }
+
+    .timetable-wrapper {
+        border-radius: 10px;
+    }
+
+    .timetable-table {
+        min-width: 850px;
+    }
+
+    .timetable-table thead th {
+        padding: 11px 8px;
+        font-size: 12px;
+    }
+
+    .timetable-table tbody td {
+        padding: 10px 7px;
+        font-size: 11px;
+        min-width: 90px;
+    }
+
+    .timetable-table tbody td:first-child {
+        min-width: 85px;
+    }
+}
+
+/* ================================
+   SMALL PHONES
+================================ */
+
+@media (max-width: 480px) {
+
+    .section-header h2 {
+        font-size: 19px;
+    }
+
+    .timetable-table {
+        min-width: 800px;
+    }
+
+    .timetable-table thead th {
+        font-size: 11px;
+        padding: 9px 6px;
+    }
+
+    .timetable-table tbody td {
+        font-size: 10px;
+        padding: 9px 6px;
+    }
+
+    .timetable-loading {
+        padding: 20px;
+        font-size: 13px;
+    }
+}

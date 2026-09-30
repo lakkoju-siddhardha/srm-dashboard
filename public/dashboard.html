@@ -165,35 +165,36 @@
     
   </div>
 
-  <!-- 3+4: ATTENDANCE RING + TODAY'S TIMETABLE side by side -->
-  <div class="grid-2 mb-6">
-<div class="card" style="padding:80px 30px; text-align:center;">
-    <h2>🚧 Attendance Module</h2>
-    <p style="margin-top:15px;color:#9aa5b1;">
-        This feature is under development.
-        It will be available in a future update.
-    </p>
-</div>
-    <!-- Overall Attendance -->
-    
-  <div class="card" style="padding:80px 30px; text-align:center;">
-    <h2>🚧overall Attendance </h2>
-    <p style="margin-top:15px;color:#9aa5b1;">
-        This feature is under development.
-        It will be available in a future update.
-    </p>
-</div>
-    <!-- Today's Classes -->
-    <div class="card" style="padding:80px 30px; text-align:center;">
-    <h2>🚧 Today's Classes </h2>
-    <p style="margin-top:15px;color:#9aa5b1;">
-        This feature is under development.
-        It will be available in a future update.
-    </p>
-</div>
-  </div>
+  
 
-  <!-- 5. SUBJECT-WISE ATTENDANCE TABLE -->
+<!-- TIMETABLE SECTION -->
+<section id="timetableSection" class="dashboard-section">
+
+    <div class="section-header">
+        <div>
+            <h2>Time Table</h2>
+            <p>Your weekly class schedule</p>
+        </div>
+    </div>
+
+    <div id="timetableLoading" class="timetable-loading">
+        Loading timetable...
+    </div>
+
+    <div id="timetableError" class="timetable-error" style="display:none;">
+        Unable to load timetable.
+    </div>
+
+    <div id="timetableContainer" class="timetable-wrapper" style="display:none;">
+        <div class="timetable-scroll">
+            <table id="timetableTable" class="timetable-table">
+                <thead id="timetableHead"></thead>
+                <tbody id="timetableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
  
  <section id="results-section" class="section">
 

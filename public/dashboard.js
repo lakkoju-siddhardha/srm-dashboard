@@ -46,15 +46,19 @@ fetch("/check-session")
     else if (section === 'attendance')
         target = document.getElementById('attendance-section');
 
-    else if (section === 'timetable')
+    else if (section === 'timetable') {
         target = document.getElementById('timetable-section');
+
+        // LOAD TIMETABLE
+        loadTimetable();
+    }
 
     else if (section === 'bunk')
         target = document.getElementById('bunk-section');
 
-   else if (section === 'results') {
-    target = document.getElementById('results-section');
-}
+    else if (section === 'results')
+        target = document.getElementById('results-section');
+
     if (target) {
         target.scrollIntoView({
             behavior: 'smooth',
@@ -206,6 +210,90 @@ async function loadProfile() {
 
     } catch (err) {
         console.log("Profile load failed:", err);
+    }
+}
+// ======================
+// Timetable
+// ======================
+
+async function loadTimetable() {
+
+    const loading = document.getElementById("timetableLoading");
+    const error = document.getElementById("timetableError");
+    const container = document.getElementById("timetableContainer");
+    const head = document.getElementById("timetableHead");
+    const body = document.getElementById("timetableBody");
+
+    loading.style.display = "block";
+    error.style.display = "none";
+    container.style.display = "none";
+
+    try {
+
+        const response = await fetch("/timetable-data", {
+            credentials: "include"
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.message || "Unable to load timetable");
+        }
+
+        const rows = data.rows;
+
+        if (!rows || rows.length === 0) {
+            throw new Error("No timetable data found");
+        }
+
+        head.innerHTML = "";
+        body.innerHTML = "";
+
+        // First row = timetable headings
+        const headerRow = document.createElement("tr");
+
+        rows[0].forEach(cell => {
+
+            const th = document.createElement("th");
+
+            th.textContent = cell || "";
+
+            headerRow.appendChild(th);
+
+        });
+
+        head.appendChild(headerRow);
+
+        // Remaining rows
+        rows.slice(1).forEach(row => {
+
+            const tr = document.createElement("tr");
+
+            row.forEach(cell => {
+
+                const td = document.createElement("td");
+
+                td.textContent = cell || "";
+
+                tr.appendChild(td);
+
+            });
+
+            body.appendChild(tr);
+
+        });
+
+        loading.style.display = "none";
+        container.style.display = "block";
+
+    } catch (err) {
+
+        console.error("Timetable error:", err);
+
+        loading.style.display = "none";
+        error.textContent = err.message || "Unable to load timetable";
+        error.style.display = "block";
+
     }
 }
 
@@ -658,3 +746,7 @@ async function refreshResults() {
     }
 
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadTimetable();
+});

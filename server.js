@@ -249,18 +249,28 @@ await page.waitForTimeout(2000);
 
 console.log("Current URL:", page.url());
 
+// Wait for SRM login redirect to complete
+await page.waitForTimeout(5000);
+
+console.log("URL after SRM login:", page.url());
+
+// If SRM is still on the intermediate login page,
+// manually navigate to the dashboard.
 if (!page.url().includes("HRDSystem")) {
 
-    await page.waitForURL(
+    console.log("SRM did not redirect automatically.");
+    console.log("Navigating to HRDSystem...");
+
+    await page.goto(
         "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem",
         {
+            waitUntil: "domcontentloaded",
             timeout: 30000
         }
     );
-
 }
 
-// Wait until profile table is loaded
+// Wait for the profile/dashboard page
 await page.waitForSelector(
     ".table.table-striped tbody tr",
     {
@@ -268,6 +278,8 @@ await page.waitForSelector(
         timeout: 30000
     }
 );
+
+console.log("SRM dashboard loaded:", page.url());
 
 // Function to scrape profile
 const scrapeProfile = async () => {
@@ -634,6 +646,9 @@ app.post("/submit-code", async (req, res) => {
     }
 });
 app.get("/timetable-data", async (req, res) => {
+
+    console.log("TIMETABLE ROUTE HIT");
+
     if (!req.session.userId) {
         return res.status(401).json({
             message: "Login required"
@@ -641,54 +656,109 @@ app.get("/timetable-data", async (req, res) => {
     }
 
     const reg_no = req.session.reg_no;
+
     let browser;
 
     try {
-        browser = await chromium.launch({ headless: true });
 
-        const context = await browser.newContext({
-            storageState: getSessionPath(reg_no)
+        // Get encrypted SRM password from database
+        const user = await new Promise((resolve, reject) => {
+
+            db.query(
+                "SELECT srm_password FROM users WHERE reg_no = ?",
+                [reg_no],
+                (err, results) => {
+
+                    if (err) return reject(err);
+
+                    if (!results.length) {
+                        return reject(
+                            new Error("User not found")
+                        );
+                    }
+
+                    resolve(results[0]);
+
+                }
+            );
+
         });
 
-        const page = await context.newPage();
-
-        await page.goto(
-            "https://student.srmap.edu.in/srmapstudentcorner/HRDSystem"
+        // Use existing SRM connection/login system
+        const connection = await connectSRM(
+            reg_no,
+            user.srm_password
         );
 
-        console.log("SRM opened");
+        browser = connection.browser;
 
-        await page.locator('text="Academic"').click();
-        await page.locator('text="Time Table"').click();
+        const page = connection.page;
 
-        console.log("Timetable clicked");
+        console.log("Connected to SRM");
 
-        await page.waitForTimeout(5000);
+        // =========================
+        // OPEN ACADEMIC
+        // =========================
+// Open Academic menu
+await page.getByText("Academic", {
+    exact: true
+}).click();
 
-        const rows = await page.$$eval("table tbody tr", rows =>
-            rows.map(row => {
-                const cols = [...row.querySelectorAll("td")].map(td =>
-                    td.innerText.trim()
-                );
-                return cols;
-            })
-        );
+console.log("Academic menu opened");
 
+// Click Time Table
+await page.locator(
+    'a.clsactivity[href*="funLoadDetails(10)"]'
+).click();
+
+console.log("Time Table clicked");
+
+// Wait for timetable to load
+await page.waitForTimeout(3000);
+
+        // =========================
+        // SCRAPE TABLE
+        // =========================
+
+        const rows = await page.locator("table").first().evaluate(table => {
+
+    return [...table.querySelectorAll("tr")]
+        .map(row => {
+
+            return [...row.querySelectorAll("th, td")]
+                .map(cell => cell.innerText.trim());
+
+        })
+        .filter(row => row.length > 0);
+
+});
+
+        console.log("TIMETABLE DATA:");
         console.log(rows);
 
         await browser.close();
 
-        res.json({ rows });
+        res.json({
+            success: true,
+            rows
+        });
 
     } catch (err) {
-        console.log(err.message);
 
-        if (browser) await browser.close();
+        console.error("TIMETABLE ERROR:");
+        console.error(err);
+
+        if (browser) {
+            await browser.close();
+        }
 
         res.status(500).json({
-            message: "Failed to fetch timetable"
+            success: false,
+            message: err.message
         });
+
     }
+
 });
         app.get("/profile", (req, res) => {
     if (!req.session.userId) {
