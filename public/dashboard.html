@@ -32,19 +32,20 @@
       <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
       <span class="nav-label">Dashboard</span>
     </a>
-    <a class="nav-item" data-label="Attendance" onclick="navigate('attendance')">
-      <i class="ti ti-chart-pie" aria-hidden="true"></i>
-      <span class="nav-label">Attendance</span>
-      
-    </a>
     <a class="nav-item" data-label="Attendance Code" onclick="navigate('code')">
       <i class="ti ti-qrcode" aria-hidden="true"></i>
       <span class="nav-label">Attendance Code</span>
     </a>
-    <a class="nav-item" data-label="Timetable" onclick="navigate('timetable')">
+     <a class="nav-item" data-label="Timetable" onclick="navigate('timetable')">
       <i class="ti ti-calendar-event" aria-hidden="true"></i>
       <span class="nav-label">Timetable</span>
     </a>
+    <a class="nav-item" data-label="Attendance" onclick="navigate('attendance')">
+      <i class="ti ti-chart-pie" aria-hidden="true"></i>
+      <span class="nav-label">Attendance</span>
+    </a>
+    
+   
     <a class="nav-item" onclick="navigate('results')">
     <i class="ti ti-chart-bar"></i>
     <span class="nav-label">Results</span>
@@ -195,7 +196,35 @@
     </div>
 
 </section>
- 
+<!-- ATTENDANCE SECTION -->
+ <section id="attendanceSection" class="dashboard-section">
+    <div class="section-header">
+        <h2>Attendance Details</h2>
+    </div>
+
+    <div id="attendanceLoading" class="loading">
+        Loading attendance...
+    </div>
+
+    <div class="attendance-table-container">
+        <table class="attendance-table">
+            <thead>
+                <tr>
+                    <th>Subject Code</th>
+                    <th>Subject Name</th>
+                    <th>Attendance %</th>
+                </tr>
+            </thead>
+
+            <tbody id="attendanceTableBody">
+                <!-- Attendance rows will come here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="attendanceError" class="attendance-error"></div>
+</section>
+<!-- RESULTS SECTION -->
  <section id="results-section" class="section">
 
     <div class="section-header">

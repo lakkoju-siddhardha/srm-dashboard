@@ -760,7 +760,145 @@ await page.waitForTimeout(3000);
     }
 
 });
-        app.get("/profile", (req, res) => {
+app.get("/attendance-data", async (req, res) => {
+
+    console.log("ATTENDANCE ROUTE HIT");
+
+    if (!req.session.userId) {
+        return res.status(401).json({
+            message: "Login required"
+        });
+    }
+
+    const reg_no = req.session.reg_no;
+
+    let browser;
+
+    try {
+
+        // Get encrypted SRM password
+        const user = await new Promise((resolve, reject) => {
+
+            db.query(
+                "SELECT srm_password FROM users WHERE reg_no = ?",
+                [reg_no],
+                (err, results) => {
+
+                    if (err) return reject(err);
+
+                    if (!results.length) {
+                        return reject(new Error("User not found"));
+                    }
+
+                    resolve(results[0]);
+                }
+            );
+
+        });
+
+        // Connect to SRM
+        const connection = await connectSRM(
+            reg_no,
+            user.srm_password
+        );
+
+        browser = connection.browser;
+
+        const page = connection.page;
+
+        console.log("Connected to SRM");
+
+        // =========================
+        // OPEN ACADEMIC
+        // =========================
+
+        await page.getByText("Academic", {
+            exact: true
+        }).click();
+
+        console.log("Academic menu opened");
+
+        // =========================
+        // OPEN ATTENDANCE DETAILS
+        // =========================
+
+        await page.getByText("Attendance Details", {
+            exact: true
+        }).click();
+
+        console.log("Attendance Details clicked");
+
+        await page.waitForTimeout(3000);
+
+        // =========================
+        // ATTENDANCE TABLE
+        // =========================
+
+        const table = page.locator(
+            "#tblSubjectWiseAttendance"
+        );
+
+        await table.waitFor({
+            state: "visible",
+            timeout: 15000
+        });
+
+        // =========================
+        // SCRAPE ONLY REQUIRED DATA
+        // =========================
+
+        const attendance = await table.locator("tbody tr").evaluateAll(rows => {
+
+            return rows
+                .map(row => {
+
+                    const cells = [
+                        ...row.querySelectorAll("td")
+                    ];
+
+                    if (cells.length < 9) {
+                        return null;
+                    }
+
+                    return {
+                        subjectCode: cells[0].innerText.trim(),
+                        subjectName: cells[1].innerText.trim(),
+                        attendance: cells[8].innerText.trim()
+                    };
+
+                })
+                .filter(Boolean);
+
+        });
+
+        console.log("ATTENDANCE DATA:");
+        console.log(attendance);
+
+        await browser.close();
+
+        res.json({
+            success: true,
+            attendance
+        });
+
+    } catch (err) {
+
+        console.error("ATTENDANCE ERROR:");
+        console.error(err);
+
+        if (browser) {
+            await browser.close();
+        }
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+
+});
+app.get("/profile", (req, res) => {
     if (!req.session.userId) {
         return res.status(401).json({
             message: "Login required"

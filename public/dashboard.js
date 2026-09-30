@@ -43,15 +43,18 @@ fetch("/check-session")
     if (section === 'code')
         target = document.getElementById('code-section');
 
-    else if (section === 'attendance')
-        target = document.getElementById('attendance-section');
+   else if (section === 'attendance') {
+    target = document.getElementById('attendanceSection');
 
-    else if (section === 'timetable') {
-        target = document.getElementById('timetable-section');
+    // Load attendance data
+    loadAttendance();
+}
 
-        // LOAD TIMETABLE
-        loadTimetable();
-    }
+  else if (section === 'timetable') {
+    target = document.getElementById('timetableSection');
+
+    loadTimetable();
+}
 
     else if (section === 'bunk')
         target = document.getElementById('bunk-section');
@@ -293,6 +296,52 @@ async function loadTimetable() {
         loading.style.display = "none";
         error.textContent = err.message || "Unable to load timetable";
         error.style.display = "block";
+
+    }
+}
+
+async function loadAttendance() {
+    const loading = document.getElementById("attendanceLoading");
+    const tbody = document.getElementById("attendanceTableBody");
+    const error = document.getElementById("attendanceError");
+
+    loading.style.display = "block";
+    error.textContent = "";
+    tbody.innerHTML = "";
+
+    try {
+        const response = await fetch("/attendance-data");
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Failed to load attendance");
+        }
+
+        data.attendance.forEach(item => {
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${item.subjectCode}</td>
+                <td>${item.subjectName}</td>
+                <td class="attendance-percent">
+                    ${item.attendance}%
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+    } catch (err) {
+
+        console.error("Attendance error:", err);
+
+        error.textContent = "Unable to load attendance.";
+
+    } finally {
+
+        loading.style.display = "none";
 
     }
 }

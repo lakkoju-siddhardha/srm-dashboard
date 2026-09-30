@@ -1587,3 +1587,157 @@
         font-size: 13px;
     }
 }
+
+/* =========================
+   ATTENDANCE SECTION
+========================= */
+
+#attendanceSection {
+    width: 100%;
+    padding: 25px;
+    box-sizing: border-box;
+}
+
+/* Header */
+#attendanceSection .section-header {
+    margin-bottom: 20px;
+}
+
+#attendanceSection .section-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Loading */
+#attendanceLoading {
+    text-align: center;
+    padding: 30px;
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+/* Table container */
+.attendance-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 10px;
+}
+
+/* Table */
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+/* Table header */
+.attendance-table thead th {
+    background: #243b53;
+    color: white;
+    padding: 16px 14px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    border: 1px solid #3d5268;
+}
+
+/* Table body */
+.attendance-table tbody td {
+    padding: 15px 14px;
+    border: 1px solid #d5dbe1;
+    text-align: center;
+    font-size: 15px;
+}
+
+/* Subject name alignment */
+.attendance-table tbody td:nth-child(2) {
+    text-align: left;
+}
+
+/* Row hover */
+.attendance-table tbody tr:hover {
+    background: rgba(36, 59, 83, 0.08);
+    transition: 0.2s ease;
+}
+
+/* Attendance percentage */
+.attendance-table tbody td:last-child {
+    font-weight: 700;
+}
+
+/* Error message */
+.attendance-error {
+    margin-top: 15px;
+    padding: 12px 15px;
+    color: #dc3545;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+    #attendanceSection {
+        padding: 15px 10px;
+    }
+
+    #attendanceSection .section-header h2 {
+        font-size: 22px;
+    }
+
+    .attendance-table-container {
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
+    .attendance-table {
+        min-width: 550px;
+    }
+
+    .attendance-table thead th {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .attendance-table tbody td {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+}
+
+/* =========================
+   SMALL PHONES
+========================= */
+
+@media (max-width: 480px) {
+
+    #attendanceSection {
+        padding: 12px 8px;
+    }
+
+    #attendanceSection .section-header h2 {
+        font-size: 20px;
+    }
+
+    .attendance-table {
+        min-width: 500px;
+    }
+
+    .attendance-table thead th {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+
+    .attendance-table tbody td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+}
